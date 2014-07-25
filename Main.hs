@@ -38,10 +38,15 @@ randomWord = do
 randomWordPopulation :: Int -> Rand [Word]
 randomWordPopulation n = replicateM n randomWord
 
-bestGenomeInGeneration :: Population Letter -> String
-bestGenomeInGeneration p = (decodeWord g) ++ " " ++ show gs where
+bestGenomeInGeneration :: Maybe Int -> Population Letter -> String
+bestGenomeInGeneration gen p =  maybe strepr (\g -> show g ++ " " ++ strepr) gen where
+    strepr = (decodeWord g) ++ " " ++ show gs ++ "\n"
     (g, gs) = minimumBy helper p
     helper (_, g1s) (_, g2s)= compare g1s g2s
+
+bestGenomeInGenerationWithGen :: Int -> Population Letter -> String
+bestGenomeInGenerationWithGen gen p = bestGenomeInGeneration (Just gen) p
+
 
 population = 30
 elitecount = 1
@@ -53,15 +58,20 @@ nextgen = nextGeneration Minimizing wordFitness selection elitecount crossover m
 stop = (IfObjective ((==0) . minimum))
 
 
-main = do
+main_loopIO = do
     p <- runIO initialpopulation (loopIO [ioact] stop nextgen)
-    let best = bestGenomeInGeneration p
+    let best = bestGenomeInGeneration Nothing p
     putStrLn best where
         ioact :: IOHook Letter
-        ioact = DoEvery 10 helper where
+        ioact = DoEvery 1 helper where
             helper g p = do
-                let best = show g ++ " " ++ (bestGenomeInGeneration p)
+                let best = bestGenomeInGenerationWithGen g p
                 putStrLn best
+
+main_loopWithLog = do
+    (_, w) <- runGA initialpopulation (loopWithLog logger stop nextgen)
+    putStrLn w where
+        logger = WriteEvery 1 bestGenomeInGenerationWithGen
 
 
 --Checking out the library

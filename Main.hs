@@ -1,5 +1,5 @@
 import Control.Monad (replicateM)
-import Data.List (concatMap)
+import Data.List (concatMap, minimumBy)
 import Data.Char (ord, chr)
 import Moo.GeneticAlgorithm.Random (shuffle, randomSample)
 import Moo.GeneticAlgorithm.Binary
@@ -38,6 +38,11 @@ randomWord = do
 randomWordPopulation :: Int -> Rand [Word]
 randomWordPopulation n = replicateM n randomWord
 
+bestGenomeInGeneration :: Population Letter -> String
+bestGenomeInGeneration p = (decodeWord g) ++ " " ++ show gs where
+    (g, gs) = minimumBy helper p
+    helper (_, g1s) (_, g2s)= compare g1s g2s
+
 population = 30
 elitecount = 1
 initialpopulation = randomWordPopulation population
@@ -47,12 +52,17 @@ mutation = pointMutate 0.03
 nextgen = nextGeneration Minimizing wordFitness selection elitecount crossover mutation
 stop = (IfObjective ((==0) . minimum))
 
-ioact = DoEvery 1 helper where
-    helper _ p = do
-        let prstr = map (\ (g, f) -> decodeWord g ++ " " ++ (show f)) p
-        mapM_ putStrLn prstr
 
-main = runIO initialpopulation (loopIO [ioact] stop nextgen) >> return ()
+main = do
+    p <- runIO initialpopulation (loopIO [ioact] stop nextgen)
+    let best = bestGenomeInGeneration p
+    putStrLn best where
+        ioact :: IOHook Letter
+        ioact = DoEvery 10 helper where
+            helper g p = do
+                let best = show g ++ " " ++ (bestGenomeInGeneration p)
+                putStrLn best
+
 
 --Checking out the library
 {-fitnessTest = do                                                       -}

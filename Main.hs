@@ -47,7 +47,6 @@ bestGenomeInGeneration gen p =  maybe strepr (\g -> show g ++ " " ++ strepr) gen
 bestGenomeInGenerationWithGen :: Int -> Population Letter -> String
 bestGenomeInGenerationWithGen gen p = bestGenomeInGeneration (Just gen) p
 
-
 population = 30
 elitecount = 1
 initialpopulation = randomWordPopulation population
@@ -57,11 +56,15 @@ mutation = pointMutate 0.03
 nextgen = nextGeneration Minimizing wordFitness selection elitecount crossover mutation
 stop = (IfObjective ((==0) . minimum))
 
+{-type Stgen = ST Int (IO ())-}
+{-ioact :: IOHook Letter-}
+{-ioact = DoEvery 1 helper where-}
+    {-helper g p =-}
 
 main_loopIO = do
-    p <- runIO initialpopulation (loopIO [ioact] stop nextgen)
+    (p, gen) <- runIO initialpopulation (loopIO [ioact] stop nextgen)
     let best = bestGenomeInGeneration Nothing p
-    putStrLn best where
+    putStrLn (show gen ++ " " ++ best) where
         ioact :: IOHook Letter
         ioact = DoEvery 1 helper where
             helper g p = do
@@ -69,8 +72,9 @@ main_loopIO = do
                 putStrLn best
 
 main_loopWithLog = do
-    (_, w) <- runGA initialpopulation (loopWithLog logger stop nextgen)
-    putStrLn w where
+    (_, gen, w) <- runGA initialpopulation (loopWithLog logger stop nextgen)
+    putStrLn w
+    putStrLn $ show gen where
         logger = WriteEvery 1 bestGenomeInGenerationWithGen
 
 
